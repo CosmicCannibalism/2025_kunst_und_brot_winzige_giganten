@@ -1,141 +1,55 @@
-<!DOCTYPE html>
-<html lang="de">
+<!doctype html>
+<html lang="en">
+
 <head>
-  <meta charset="UTF-8" />
+	<meta charset="utf-8" />
+	<meta name="viewport" content="width=device-width,initial-scale=1" />
+	<title>Winzige Giganten — Exhibition</title>
+	<meta name="apple-mobile-web-app-capable" content="yes">
+	<meta name="apple-mobile-web-app-status-bar-style" content="black">
+	<!-- PWA manifest -->
+	<link rel="manifest" href="manifest.json">
 
-  <!-- Web App Name für iOS Homescreen -->
-  <meta name="apple-mobile-web-app-title" content="Kleine Giganten">
+	<!-- iOS icons (iOS ignores web manifest icons for homescreen) -->
+	<link rel="apple-touch-icon" href="icons/icon-192.png">
+	<link rel="apple-touch-icon" sizes="512x512" href="icons/icon-512.png">
 
-  <!-- iOS Web-App fullscreen support -->
-  <meta name="apple-mobile-web-app-capable" content="yes" />
-  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, orientation=landscape" />
-
-  <title>Kleine Giganten - Ausstellung</title>
-
-  <style>
-    html, body {
-      margin: 0; padding: 0; height: 100%; width: 100%;
-      background: black;
-      overflow: hidden;
-    }
-    #videoContainer {
-      position: relative;
-      height: 100vh;
-      width: 100vw;
-    }
-    video {
-      width: 100%;
-      height: 100%;
-      object-fit: cover;
-      background: black;
-      position: absolute;
-      top: 0; left: 0;
-      transition: opacity 0.3s ease;
-    }
-    .hidden {
-      opacity: 0;
-      pointer-events: none;
-    }
-    .visible {
-      opacity: 1;
-      pointer-events: auto;
-    }
-    #landingPage {
-      position: absolute;
-      top: 0; left: 0; right: 0; bottom: 0;
-      background: rgba(0,0,0,0.85);
-      color: white;
-      font-family: sans-serif;
-      display: flex;
-      flex-direction: column;
-      justify-content: center;
-      align-items: center;
-      z-index: 10;
-    }
-    #landingPage button {
-      padding: 1em 2em;
-      font-size: 1.5em;
-      cursor: pointer;
-      border: none;
-      background: #0078D7;
-      color: white;
-      border-radius: 8px;
-    }
-    #landingPage p {
-      margin-bottom: 1em;
-      font-size: 1.3em;
-    }
-  </style>
+	<!-- iOS splash screens can be added per-device if desired (not included) -->
+	<link rel="stylesheet" href="style.css">
 </head>
+
 <body>
+	<!-- App container -->
+	<div class="app" id="app">
 
-<div id="videoContainer">
-  <video id="teaserVideo" playsinline muted loop preload="auto" class="visible"></video>
-  <video id="mainVideo" playsinline preload="auto" class="hidden"></video>
-</div>
+		<!-- Video layers: teaser (default visible) and main (hidden until triggered) -->
+		<div class="video-wrap">
+			<video id="teaserVideo" class="visible" muted playsinline preload="auto" loop>
+				<source src="videos/teaser.mp4" type="video/mp4">
+				Your browser does not support the teaser video.
+			</video>
 
-<div id="landingPage">
-  <p>Willkommen! Zum Starten des Systems bitte den Start-Button drücken.</p>
-  <button id="startButton">Start</button>
-</div>
+			<video id="mainVideo" class="hidden" muted playsinline preload="auto">
+				<source src="videos/main.mp4" type="video/mp4">
+				Your browser does not support the main video.
+			</video>
+		</div>
 
-<script>
-  const teaserVideoSrc = "videos/teaser.mp4";
-  const mainVideoSrc = "videos/main.mp4";
+		<!-- Loading overlay. Shown until both videos are ready or timeout occurs -->
+		<div id="overlay" role="status" aria-live="polite">
+			<div class="spinner" aria-hidden="true"></div>
+			<div class="overlay-msg" id="overlayMsg">Loading media, please wait…</div>
+			<div class="overlay-actions" id="overlayActions" style="display:none">
+				<button id="retryBtn">Retry</button>
+			</div>
+		</div>
 
-  const teaserVideo = document.getElementById('teaserVideo');
-  const mainVideo = document.getElementById('mainVideo');
-  const landingPage = document.getElementById('landingPage');
-  const startButton = document.getElementById('startButton');
+		<!-- Fallback Start button (hidden when overlay dismisses) -->
+		<button id="startBtn">Start</button>
 
-  let isLandingActive = true;
+	</div>
 
-  teaserVideo.src = teaserVideoSrc;
-  mainVideo.src = mainVideoSrc;
-
-  function playTeaser() {
-    teaserVideo.classList.replace("hidden", "visible");
-    mainVideo.classList.replace("visible", "hidden");
-
-    mainVideo.pause();
-    mainVideo.currentTime = 0;
-
-    teaserVideo.play();
-  }
-
-  function playMainVideo() {
-    teaserVideo.classList.replace("visible", "hidden");
-    mainVideo.classList.replace("hidden", "visible");
-
-    teaserVideo.pause();
-    mainVideo.currentTime = 0;
-    mainVideo.play();
-  }
-
-  mainVideo.addEventListener('ended', () => {
-    playTeaser();
-  });
-
-  startButton.addEventListener('click', () => {
-    landingPage.style.display = 'none';
-    isLandingActive = false;
-    playTeaser();
-  });
-
-  window.addEventListener('keydown', (e) => {
-    if (isLandingActive) return;
-    if (e.code === 'Space') {
-      if (mainVideo.classList.contains("visible")) {
-        mainVideo.currentTime = 0;
-        mainVideo.play();
-      } else {
-        playMainVideo();
-      }
-    }
-  });
-</script>
-
+	<script src="script.js" defer></script>
 </body>
+
 </html>
