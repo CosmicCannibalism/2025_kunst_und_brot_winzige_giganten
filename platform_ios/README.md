@@ -66,6 +66,83 @@ This creates `videos/main_720.mp4` and `videos/teaser_720.mp4` (and 360p variant
 - Select the entire `winzige_giganten_webapp` folder. In the dialog, check "Copy items if needed" and add to your app target. Use "Create folder references" or "Create groups" — folder reference is okay but groups is easier for static resources.
 - Confirm the files appear under the app target and are included in "Build Phases → Copy Bundle Resources".
 
+Bundling the original (uncompressed) videos — exact steps and warnings
+
+If you want to bundle the original `main.mp4` and `teaser.mp4` files without running the compression script, follow these exact steps. This will make the videos available offline in the app bundle immediately, but be aware the IPA size will grow by the total size of those files.
+
+Steps
+
+1. Ensure the hi-resolution files exist at `winzige_giganten_webapp/videos/main.mp4` and `winzige_giganten_webapp/videos/teaser.mp4` in the repo.
+2. In Xcode, use File → Add Files to "<YourProject>..." and select the `winzige_giganten_webapp/videos` folder (or the two mp4 files). In the dialog:
+	- Check "Copy items if needed" if you want Xcode to copy them into the project folder.
+	- Ensure your app target is checked in "Add to targets".
+3. After adding, open your target → Build Phases → Copy Bundle Resources and verify both mp4 files are listed.
+4. (Optional) If you prefer groups instead of folder references, add the parent `winzige_giganten_webapp` folder as a group so paths inside the bundle match the app's expected structure.
+
+Estimate IPA size increase before building
+
+From the repo root you can estimate the added size the videos will contribute to the app bundle:
+
+```bash
+# show the combined size of the videos folder
+du -sh winzige_giganten_webapp/videos
+```
+
+The IPA will include these bytes (plus a small packaging overhead). If the videos folder is several GB, expect the IPA to be roughly that size.
+
+Warnings and tips
+
+- Large IPAs: bundling multi-gigabyte video files will produce a very large IPA. This can make installs slow and may require using Apple Configurator or physical connections for installation (TestFlight supports large builds but has limits and longer upload times).
+- Device storage: ensure exhibition iPads have enough free storage for the app and videos.
+- Backups and updates: updating videos requires replacing the app (rebuild/reinstall) unless you use the Finder copy workflow described earlier (enable `UIFileSharingEnabled` and copy into Documents). If you expect frequent content updates, prefer the Finder copy workflow instead of rebuilding each time.
+- If you later change your mind: you can revert to the compressed `_720.mp4` variants by running `tools/compress_videos.sh` and swapping filenames in the webapp folder.
+
+Automatic copy at build time (Run Script)
+
+If you prefer Xcode to copy the `winzige_giganten_webapp` (including the uncompressed videos) into the app bundle automatically at build time, add the provided script as a Run Script build phase.
+
+1. In Xcode, open your app target → Build Phases → click '+', choose 'New Run Script Phase'.
+2. Move the phase before 'Copy Bundle Resources' so the files are available to be packaged.
+3. Set the shell to '/bin/sh' and use this script invocation (assuming your project root is the repo root):
+
+	${SRCROOT}/platform_ios/scripts/copy_webapp_to_bundle.sh
+
+4. Tell Xcode about the script's output (avoid "Run script will be run during every build")
+
+	Xcode runs a script phase every build if it cannot determine outputs. The provided script writes a small marker file into the bundle; add that path to the Run Script phase's "Output Files" so Xcode can perform dependency analysis and skip the script when not needed.
+
+	- In the Run Script phase, open the "Output Files" section and add a single line with the following path (use the exact line, replacing ${TARGET_BUILD_DIR} with that literal; Xcode will expand it at build time):
+
+	  ${TARGET_BUILD_DIR}/${UNLOCALIZED_RESOURCES_FOLDER_PATH}/winzige_giganten_webapp/.winzige_webapp_copied
+
+	- With that Output Files entry present, Xcode will only run the script when the output is missing or stale.
+
+Duplicate Info.plist error
+
+If you see an error like "duplicate output file '.../WinzigeGiganten.app/Info.plist'" it often means two build steps are producing the same file (for example a manual copy step and the normal Info.plist processing). To resolve:
+
+1. Make sure you're not also copying an Info.plist into the app resources via Copy Bundle Resources. The only Info.plist that should be processed is the one specified in the target's build settings (Info.plist File). If you accidentally added `platform_ios/Info.plist` to Copy Bundle Resources, remove it from that phase.
+
+2. If the error remains and points to ProcessInfoPlistFile, try the following:
+	- Confirm your target's "Info.plist File" in Build Settings points to the single Info.plist you want Xcode to process (for example, `platform_ios/Info.plist`).
+	- Ensure you did not add the same Info.plist as a resource via the Run Script or Copy Bundle Resources phases.
+
+3. As a last resort for transient build system issues, Clean Build Folder (Shift-Command-K) and rebuild. If the build system state is corrupted, a clean often resolves duplicate-output errors.
+
+4. If you intentionally need two different Info.plist files for different configurations, use separate targets or adjust the Build Settings per-configuration so only one Info.plist is produced per target.
+
+4. (Optional) If you don't use ${SRCROOT} in your project configuration, you can expand it to the absolute path. The script uses Xcode-provided environment variables like TARGET_BUILD_DIR and UNLOCALIZED_RESOURCES_FOLDER_PATH to place the files into the app resources folder.
+
+Verification
+
+- Build the app for a simulator or device. After a successful build, inspect the built product in the Finder by right-clicking the .app in Xcode's Products group → Show in Finder → Right-click the .app → Show Package Contents. You should see `winzige_giganten_webapp` under the Resources folder and the original `main.mp4` and `teaser.mp4` files inside `videos/`.
+- Alternatively, after installing the app on device, you can inspect the bundle using ideviceinstaller or by exporting the archived IPA and unzipping it to verify the resources.
+
+Notes
+
+- This Run Script will copy the raw, uncompressed video files into the app bundle. Use it only if you intend to ship the originals; otherwise prefer the compression workflow in `tools/compress_videos.sh` to reduce IPA size.
+- If you also enable the Finder update workflow (UIFileSharingEnabled), copying a `winzige_giganten_webapp` into Documents will take precedence at runtime because `ViewController.swift` prefers the Documents copy when present.
+
 5) Replace the default ViewController with the provided `ViewController.swift`
 
 - Delete or replace the auto-generated view controller code and add the sample `ViewController.swift` from this repository (paste into a new Swift file in the project).
