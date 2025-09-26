@@ -1,0 +1,17 @@
+# Ignore VS Code workspace settings
+.vscode/
+
+# Logs
+*.log
+
+# Temporary files
+*.tmp
+*.bak
+
+# Folders
+build/
+
+# Files
+sketch.yaml.disabled
+.DS_Store
+
