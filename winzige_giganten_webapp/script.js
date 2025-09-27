@@ -1,111 +1,81 @@
+console.log('Winzige Giganten script.js loaded — version 2025-09-27');
 (function(){
   const teaser = document.getElementById('teaserVideo');
   const main = document.getElementById('mainVideo');
   const overlay = document.getElementById('overlay');
-  const overlayMsg = document.getElementById('overlayMsg');
-  const overlayActions = document.getElementById('overlayActions');
-  const retryBtn = document.getElementById('retryBtn');
   const startBtn = document.getElementById('startBtn');
+  const spinner = document.querySelector('.spinner');
 
-  const TIMEOUT_MS = 15000; // default timeout, matches spec recommendation
-  let ready = {teaser:false, main:false};
-  let timedOut = false;
-  let timeoutHandle = null;
+  // Hide Start button initially
+    // Hide Start button initially (use class for opacity control)
+    startBtn.classList.add('fade-hidden');
+  teaser.classList.add('visible'); teaser.classList.remove('hidden');
+  main.classList.remove('visible'); main.classList.add('hidden');
 
-  function markReady(which){
-    // Prevent duplicate ready notifications (some browsers fire both
-    // 'loadeddata' and 'canplaythrough' for the same media).
-    if (ready[which]) {
-      console.log('ready (ignored duplicate) -', which);
-      return;
-    }
-    ready[which] = true;
-    console.log('ready -', which);
-    tryHideOverlay();
+  let teaserReady = false;
+  let mainReady = false;
+  let started = false;
+  let fallbackTimer = null;
+
+const overlayMsg = document.getElementById('overlayMsg');
+function showStartButton() {
+  if (spinner) spinner.style.display = 'none';
+  if (overlayMsg) overlayMsg.style.display = 'none';
+  // ensure the button is visible immediately (no fade)
+  if (started) return; // don't show again after start
+  console.log('showStartButton()');
+  startBtn.style.display = 'block';
+  startBtn.classList.remove('fade-hidden');
+  startBtn.hidden = false;
+  startBtn.setAttribute('aria-hidden', 'false');
+}
+function checkReady() {
+  if (teaserReady && mainReady) {
+    showStartButton();
   }
+}
 
-  function markError(which, err){
-    console.warn('media error', which, err);
-    showOverlayError('Failed to load media: ' + which);
-  }
+  teaser.addEventListener('canplaythrough', ()=>{
+    teaserReady = true;
+    checkReady();
+  });
+  main.addEventListener('canplaythrough', ()=>{
+    mainReady = true;
+    checkReady();
+  });
 
-  function tryHideOverlay(){
-    if((ready.teaser && ready.main) && !timedOut){
-      hideOverlay();
-    }
-  }
+  // Fallback: show Start button after 10 seconds if videos aren't ready
+  fallbackTimer = setTimeout(()=>{
+    if (!teaserReady || !mainReady) showStartButton();
+  }, 10000);
 
-  function hideOverlay(){
+  // Start button click: hide overlay, hide button, show and play teaser
+  startBtn.addEventListener('click', ()=>{
+    console.log('startBtn clicked — hiding button and fading overlay');
+    // mark started so we don't show the start button again
+    started = true;
+    if (fallbackTimer) { clearTimeout(fallbackTimer); fallbackTimer = null; }
     overlay.classList.add('hidden');
-    // allow keyboard interactions now
+    // hide the button instantly while overlay fades (robust)
     startBtn.style.display = 'none';
-    // ensure teaser is visible and playing silently
+    startBtn.hidden = true;
+    startBtn.setAttribute('aria-hidden', 'true');
+    // also remove focus to avoid accidental re-activation
+    try { startBtn.blur(); } catch(e){}
     teaser.classList.add('visible'); teaser.classList.remove('hidden');
+    teaser.currentTime = 0;
     teaser.play().catch(()=>{});
-  }
+  });
 
-  function showOverlayError(msg){
-    timedOut = true;
-    overlayMsg.textContent = msg;
-    overlayActions.style.display = 'block';
-    overlay.classList.remove('hidden');
-    // pause videos to avoid partial playback
-    try{ teaser.pause(); main.pause(); }catch(e){}
-  }
-
-  function startTimeout(){
-    clearTimeout(timeoutHandle);
-    timeoutHandle = setTimeout(()=>{
-      if(!(ready.teaser && ready.main)){
-        showOverlayError('Loading timed out. Check network or retry.');
-      }
-    }, TIMEOUT_MS);
-  }
-
-  // attach events
-  teaser.addEventListener('canplaythrough', ()=>markReady('teaser'));
-  teaser.addEventListener('loadeddata', ()=>markReady('teaser'));
-  teaser.addEventListener('error', (e)=>markError('teaser', e));
-
-  main.addEventListener('canplaythrough', ()=>markReady('main'));
-  main.addEventListener('loadeddata', ()=>markReady('main'));
-  main.addEventListener('error', (e)=>markError('main', e));
-
+  // When main video ends, return to teaser
   main.addEventListener('ended', ()=>{
-    // when main ends, return to teaser smoothly
     teaser.currentTime = 0;
     teaser.classList.add('visible'); teaser.classList.remove('hidden');
     main.classList.remove('visible'); main.classList.add('hidden');
     teaser.play().catch(()=>{});
   });
 
-  // load kick-off
-  function beginLoad(){
-    timedOut = false;
-    overlayMsg.textContent = 'Loading media, please wait…';
-    overlayActions.style.display = 'none';
-    overlay.classList.remove('hidden');
-    ready.teaser = false; ready.main = false;
-    // ensure preload attribute is present
-    try{ teaser.load(); main.load(); }catch(e){console.warn(e)}
-    startTimeout();
-  }
-
-  retryBtn.addEventListener('click', ()=>{
-    beginLoad();
-  });
-
-  startBtn.addEventListener('click', ()=>{
-    if(overlay.classList.contains('hidden')){
-      // already ready
-      teaser.currentTime = 0; teaser.play().catch(()=>{});
-    } else {
-      // try to begin load again
-      beginLoad();
-    }
-  });
-
-  // keyboard: Space handling
+  // Keyboard: Space handling
   window.addEventListener('keydown', (e)=>{
     if(e.code !== 'Space') return;
     // don't react while overlay is active
@@ -122,12 +92,6 @@
       main.currentTime = 0; main.play().catch(()=>{});
     }
   });
-
-  // ensure teaser visible by default but still blocked by overlay until ready
-  teaser.classList.add('visible'); teaser.classList.remove('hidden');
-
-  // start preloading automatically on script run
-  beginLoad();
 
   // Register service worker for offline/app-shell behavior (optional)
   if ('serviceWorker' in navigator) {
