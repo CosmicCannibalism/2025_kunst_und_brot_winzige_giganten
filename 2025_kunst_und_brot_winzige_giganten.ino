@@ -4,65 +4,52 @@
 // winzige giganten exibithion
 //
 // •reads mechanical start button
-// •sets variable isPlaying via serial or button
-// •relay opens when isPlaying == true
+// •sends keyboard Space event on button press
+// •relay opens when movie is playing (timer)
+
+#include <Keyboard.h>
+
+bool buttonLocked = false;               // Cooldown lock flag
 
 const int buttonPin = 6;                 // Pin where the button is connected
 const unsigned long debounceDelay = 50;  // Debounce time in milliseconds
 const unsigned long cooldownDelay = 200; // Cooldown time after valid press (in ms)
-
-bool lastButtonState = 1;             // Start with HIGH because of pull-up
-bool buttonLocked = false;               // Cooldown lock flag
-bool isPlaying = false;                  // Variable to control playback state
-
-unsigned long lastDebounceTime = 0;      // Last time the button state changed
-unsigned long lastActionTime = 0;        // Last time an action was triggered
-
-const int relayPin = 7;                   // Pin where the relay is connected
+bool lastButtonState = HIGH;             // Start with HIGH because of pull-up
+const int relayPin = 7;                  // Relay pin (change as needed)
+const unsigned long relayDuration = 30000  ; // Relay open duration (ms)
+unsigned long relayOpenedAt = 0;
+bool relayOpen = false;
+unsigned long lastDebounceTime = 0;
 
 void setup() {
-  pinMode(buttonPin, INPUT_PULLUP);       // Enable internal pull-up resistor
+  pinMode(buttonPin, INPUT_PULLUP);
   pinMode(relayPin, OUTPUT);
-  Serial.begin(9600);                     // Start serial communication
-  Serial.println("Type 'false' or '0' to stop playback.");
+  digitalWrite(relayPin, LOW); // relay initially closed
+  Keyboard.begin();
 }
 
 void loop() {
   int reading = digitalRead(buttonPin);
   unsigned long currentTime = millis();
 
-  // --- Read Serial Input to set isPlaying to false ---
-  if (Serial.available() > 0) {
-    String command = Serial.readStringUntil('\n');
-    command.trim(); // remove spaces/newline
-
-    if (command.equalsIgnoreCase("false") || command.equals("0")) {
-      isPlaying = false;
-      Serial.println("isPlaying set to false");
-    }
-    if (command.equalsIgnoreCase("true") || command.equals("1")) {
-      isPlaying = true;
-      Serial.println("isPlaying set to true");
-    }
-  }
-
-  // --- Debounce check for the button ---
-  if (reading != lastButtonState) {  
+  // Debounce check for the button
+  if (reading != lastButtonState) {
     lastDebounceTime = currentTime;
     lastButtonState = reading;
   }
 
-  // --- Button press sets isPlaying to true ---
+  // On valid button press: send Space, open relay, reset timer
   if (reading == LOW &&
       (currentTime - lastDebounceTime > debounceDelay) &&
       !buttonLocked &&
-      (currentTime - lastActionTime > cooldownDelay)) {
-
-    isPlaying = true;
-    Serial.println("isPlaying set to true by button");
-
+      (currentTime - relayOpenedAt > cooldownDelay)) {
+    Keyboard.press(' ');
+    delay(30);
+    Keyboard.release(' ');
+    digitalWrite(relayPin, HIGH);
+    relayOpenedAt = currentTime;
+    relayOpen = true;
     buttonLocked = true;
-    lastActionTime = currentTime;
   }
 
   // Reset cooldown lock when button is released
@@ -70,10 +57,10 @@ void loop() {
     buttonLocked = false;
   }
 
-  // --- Control relay based on isPlaying state ---
-  if (isPlaying) {
-    digitalWrite(relayPin, HIGH);  // Relay ON
-  } else {
-    digitalWrite(relayPin, LOW);   // Relay OFF
+  // Close relay after duration
+  if (relayOpen && (currentTime - relayOpenedAt >= relayDuration)) {
+    digitalWrite(relayPin, LOW);
+    relayOpen = false;
   }
 }
+ 

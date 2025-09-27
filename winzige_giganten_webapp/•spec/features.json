@@ -10,6 +10,7 @@
   },
   "features": [
     {
+      "status": "done",
       "id": "F001",
       "title": "Initial loading overlay",
       "description": "Display a full-screen loading animation overlay on first load while both video assets (teaser.mp4 and main.mp4) preload. The overlay must only be dismissed after both videos are in a playable state or after an operator-configurable timeout.",
@@ -41,6 +42,7 @@
       ]
     },
     {
+      "status": "done",
       "id": "F002",
       "title": "Teaser: loop and fallback",
       "description": "When visible, the teaser video loops continuously. If the main video ends or is hidden, the teaser becomes visible and restarts from time 0 without audible pops or visual flashes.",
@@ -66,6 +68,7 @@
       ]
     },
     {
+      "status": "done",
       "id": "F003",
       "title": "Input mapping: Space / HID button",
       "description": "Spacebar (keyboard) or the Arduino HID button must toggle teaser->main; when main is visible, pressing Space restarts the main video from time 0.",
@@ -92,6 +95,7 @@
       ]
     },
     {
+      "status": "done",
       "id": "F004",
       "title": "Arduino HID button integration",
       "description": "Arduino sketch sends a USB HID Space keypress; sketch includes debounce and cooldown logic.",
@@ -105,6 +109,7 @@
       "edge_cases": ["Internal pullup wiring requires logic inversion if switching to INPUT_PULLUP."]
     },
     {
+      "status": "done",
       "id": "F005",
       "title": "Video manifest & validator",
       "description": "Optional video-manifest.json to configure paths and a validator script for dev/CI that ensures assets exist.",
@@ -117,6 +122,7 @@
       "tests": {"automated": ["Node script to assert files or manifest presence."]}
     },
     {
+      "status": "done",
       "id": "F006",
       "title": "Dev preview server",
       "description": "Document minimal HTTP server command for local preview (required by some browsers for video).",
@@ -126,6 +132,7 @@
       "tests": {"manual": ["Run server and open the preview URL."]}
     },
     {
+      "status": "done",
       "id": "F007",
       "title": "Kiosk / iOS metadata",
       "description": "Meta tags for iOS home-screen fullscreen and landscape orientation.",
@@ -135,6 +142,7 @@
       "tests": {"manual": ["Install to iOS home screen and verify fullscreen behavior."]}
     },
     {
+      "status": "done",
       "id": "F008",
       "title": "Non-ASCII path handling",
       "description": "The •spec folder contains a non-ASCII character; scripts must quote paths or avoid shell use.",
@@ -144,6 +152,7 @@
       "tests": {"manual": ["Open files with editor and run scripts with quoted paths."]}
     },
     {
+      "status": "done",
       "id": "F009",
       "title": "Logging & debug",
       "description": "Minimal console logging for key events and video transitions, toggleable by debug flag.",
@@ -153,6 +162,7 @@
       "tests": {"manual": ["Enable debug and exercise Start/Space to see logs."]}
     },
     {
+      "status": "done",
       "id": "F010",
       "title": "E2E (software & hardware)",
       "description": "Automated browser E2E for software flows and a hardware checklist for Arduino integration.",
